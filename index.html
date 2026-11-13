@@ -1,26 +1,596 @@
-# BRANCH Sales Reporter
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NBS Sales Reporter | Accupoint Systems</title>
+    <meta name="theme-color" content="#0033A0">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- jsPDF & AutoTable for Client-Side PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-A mobile-responsive web application designed for Accupoint Systems Incorporated merchandisers to streamline daily sales reporting, MTD (Month-to-Date) calculations, and Viber-formatted report generation.
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nbs: {
+                            50: '#e6edf8',
+                            100: '#cce0f1',
+                            500: '#0033A0',
+                            600: '#002880',
+                            700: '#001d60',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
-## Features
+    <!-- Header -->
+    <header class="bg-nbs-500 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2 rounded-xl border border-white/20">
+                    <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base leading-tight tracking-wide">NBS Sales Reporter</h1>
+                    <p class="text-xs text-blue-200">Accupoint Systems Incorporated</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="app.resetForm()" class="bg-white/10 hover:bg-white/20 p-2 rounded-lg text-xs font-medium flex items-center space-x-1 transition border border-white/10">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
-- **Branch Selection & Management:** Easy selection of specific NBS branches directly from the main menu.
-- **Daily Sales Encoder:** Input daily quantities and sales amounts with an optional **"No Sales"** toggle for zero-sales days.
-- **Automatic MTD Computation:** Automatically tracks and calculates Month-to-Date performance using local storage.
-- **Viber-Formatted Output:** Generates clean, ready-to-copy report formats optimized for mobile messaging apps like Viber.
-- **PDF Export & Large Viewer:** Built-in PDF report generator and full-screen view for easy reading and documentation.
-- **Offline Persistence:** Uses browser `localStorage` to retain user inputs and history securely on the device.
+    <!-- Main Container -->
+    <main class="max-w-3xl w-full mx-auto px-4 py-4 flex-1 space-y-4 pb-24">
 
-## Version & Credits
+        <!-- Branch Selector Card -->
+        <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Select Branch</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button type="button" onclick="app.setBranch('2249 Robinson Place Palawan')" id="btn-branch-2249" class="branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-nbs-500 bg-nbs-50/50 text-nbs-700">
+                    <div>
+                        <span class="block text-xs font-semibold text-nbs-500 uppercase">Branch 2249</span>
+                        <span class="font-bold text-sm">Robinson Place Palawan</span>
+                    </div>
+                    <i data-lucide="check-circle-2" class="w-5 h-5 text-nbs-500"></i>
+                </button>
+                <button type="button" onclick="app.setBranch('2381 SM City Puerto Princesa')" id="btn-branch-2381" class="branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-slate-200 bg-white text-slate-700 hover:border-slate-300">
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400 uppercase">Branch 2381</span>
+                        <span class="font-bold text-sm">SM City Puerto Princesa</span>
+                    </div>
+                    <i data-lucide="circle" class="w-5 h-5 text-slate-300"></i>
+                </button>
+            </div>
+            <div class="mt-3">
+                <button type="button" onclick="app.toggleCustomBranch()" class="text-xs text-nbs-500 font-semibold hover:underline flex items-center space-x-1">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                    <span id="custom-branch-toggle-text">Iba bang Branch / Custom</span>
+                </button>
+                <div id="custom-branch-container" class="hidden mt-2">
+                    <input type="text" id="custom-branch-input" oninput="app.setCustomBranch(this.value)" placeholder="Ilagay ang pangalan ng branch..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-nbs-500 focus:outline-none">
+                </div>
+            </div>
+        </section>
 
-- **App Name:** NBS Sales Reporter
-- **Company:** Accupoint Systems Incorporated
-- **Developer/Version:** Richard Jamag (Merchandiser)
+        <!-- Date & Basic Info Card -->
+        <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Sales Date</label>
+                <div class="relative">
+                    <input type="date" id="sales-date" onchange="app.updateDate(this.value)" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-nbs-500 focus:outline-none bg-slate-50 font-medium">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Merchandiser / Encoder</label>
+                <input type="text" id="encoder-name" value="Richard Jamag" oninput="app.updateEncoder(this.value)" placeholder="Pangalan..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-nbs-500 focus:outline-none bg-slate-50 font-medium">
+            </div>
+        </section>
 
-## How to Use
+        <!-- Dynamic Items Encoder Card -->
+        <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                    <h2 class="font-bold text-base text-slate-800">Itemized Sales Encoder</h2>
+                    <p class="text-xs text-slate-500">I-encode ang mga nabiling produkto, presyo, at dami.</p>
+                </div>
+                <button onclick="app.addItemRow()" class="bg-nbs-500 hover:bg-nbs-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-sm transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Magdagdag ng Item</span>
+                </button>
+            </div>
 
-1. Open the live web app link on your mobile browser (Google Chrome or Safari).
-2. Tap the browser menu (`...`) and select **"Add to Home screen"** or **"Create shortcut"** for quick app-like access.
-3. Select your assigned branch from the main menu.
-4. Input your daily sales data or check the **"No Sales"** option if applicable.
-5. Copy the generated Viber report or download the PDF summary.
+            <!-- Items List Container -->
+            <div id="items-container" class="space-y-3">
+                <!-- Dynamically populated rows -->
+            </div>
+
+            <!-- Quick Add Presets -->
+            <div class="pt-2 border-t border-slate-100">
+                <span class="block text-xs font-medium text-slate-400 mb-2">Mabilisang Idagdag (Presets):</span>
+                <div id="preset-buttons" class="flex flex-wrap gap-1.5">
+                    <!-- Preset chips injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- MTD / Monthly Target Calculator Card -->
+        <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="font-bold text-base text-slate-800">Month-to-Date (MTD) Target</h2>
+                    <p class="text-xs text-slate-500">Kalkulahin ang progreso kumpara sa buwanang target.</p>
+                </div>
+                <div class="bg-blue-50 text-nbs-500 p-2 rounded-xl">
+                    <i data-lucide="target" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Monthly Target (₱)</label>
+                    <input type="number" id="monthly-target" oninput="app.updateTarget(this.value)" placeholder="Hal. 150000" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-nbs-500 focus:outline-none font-medium">
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col justify-center">
+                    <span class="text-xs text-slate-500 font-medium">Naabot na Porsyento (%):</span>
+                    <div class="flex items-baseline space-x-2">
+                        <span id="mtd-percentage" class="text-lg font-bold text-nbs-500">0.0%</span>
+                        <span id="mtd-status" class="text-xs text-slate-400">Maglagay ng Target</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Summary & Analytics Card -->
+        <section class="bg-gradient-to-br from-nbs-700 via-nbs-600 to-nbs-500 rounded-2xl p-5 text-white shadow-md space-y-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-blue-200">Daily Sales Summary</span>
+                <span id="summary-date-label" class="text-xs bg-white/10 px-2.5 py-1 rounded-full font-medium">--</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <span class="block text-xs text-blue-200 font-medium">Total Items Sold</span>
+                    <span id="total-qty" class="text-2xl font-bold">0</span>
+                </div>
+                <div>
+                    <span class="block text-xs text-blue-200 font-medium">Total Gross Sales</span>
+                    <span id="total-sales" class="text-2xl font-bold">₱0.00</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-white/10">
+                <button onclick="app.generateViberReport()" class="bg-white text-nbs-700 hover:bg-blue-50 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 shadow transition">
+                    <i data-lucide="share-2" class="w-4 h-4 text-nbs-500"></i>
+                    <span>Kopyahin para sa Viber</span>
+                </button>
+                <button onclick="app.downloadPDF()" class="bg-white/10 hover:bg-white/20 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 border border-white/20 transition">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>I-download ang PDF</span>
+                </button>
+                <button onclick="app.previewPDF()" class="bg-white/10 hover:bg-white/20 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 border border-white/20 transition">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                    <span>Silipin ang Report</span>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Success Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2.5 rounded-full text-xs font-medium shadow-xl flex items-center space-x-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toast-msg">Matagumpay na nakopya!</span>
+    </div>
+
+    <!-- PDF Modal Viewer -->
+    <div id="pdf-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-nbs-500 text-white p-4 flex items-center justify-between">
+                <h3 class="font-bold text-sm">PDF Report Preview</h3>
+                <button onclick="app.closeModal()" class="bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-4 flex-1 bg-slate-100 overflow-y-auto">
+                <iframe id="pdf-preview-frame" class="w-full h-[400px] sm:h-[500px] bg-white rounded-xl shadow border border-slate-200"></iframe>
+            </div>
+            <div class="p-4 bg-white border-t border-slate-200 flex justify-end space-x-2">
+                <button onclick="app.closeModal()" class="px-4 py-2 text-xs font-semibold bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 transition">Isara</button>
+                <button onclick="app.downloadPDF()" class="px-4 py-2 text-xs font-semibold bg-nbs-500 text-white rounded-xl hover:bg-nbs-600 transition flex items-center space-x-1">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>I-download</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200/80 bg-white mt-auto">
+        <p>NBS Sales Reporter &bull; Developed for Accupoint Systems Incorporated</p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Merchandiser Edition &bull; Richard Jamag</p>
+    </footer>
+
+    <!-- App Logic Script -->
+    <script>
+        const PRESETS = [
+            { name: "Ballpen (Box/Pc)", price: 150.00 },
+            { name: "Notebook", price: 45.00 },
+            { name: "Intermediate Paper", price: 38.50 },
+            { name: "Crayons (24s)", price: 65.00 },
+            { name: "Folder (Long)", price: 12.00 },
+            { name: "Correction Tape", price: 55.00 }
+        ];
+
+        class SalesApp {
+            constructor() {
+                this.branch = "2249 Robinson Place Palawan";
+                this.isCustomBranch = false;
+                this.date = new Date().toISOString().split('T')[0];
+                this.encoder = "Richard Jamag";
+                this.target = 150000;
+                this.items = [
+                    { id: 1, name: "Ballpen (Box/Pc)", qty: 5, price: 150.00 },
+                    { id: 2, name: "Notebook", qty: 12, price: 45.00 }
+                ];
+                this.init();
+            }
+
+            init() {
+                document.getElementById('sales-date').value = this.date;
+                document.getElementById('encoder-name').value = this.encoder;
+                document.getElementById('monthly-target').value = this.target;
+                this.renderPresets();
+                this.renderItems();
+                this.calculateSummary();
+                lucide.createIcons();
+            }
+
+            setBranch(branchName) {
+                this.branch = branchName;
+                this.isCustomBranch = false;
+                document.getElementById('custom-branch-container').classList.add('hidden');
+                
+                // Update UI buttons
+                const b1 = document.getElementById('btn-branch-2249');
+                const b2 = document.getElementById('btn-branch-2381');
+                
+                if (branchName.includes('2249')) {
+                    b1.className = "branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-nbs-500 bg-nbs-50/50 text-nbs-700";
+                    b1.querySelector('span').className = "block text-xs font-semibold text-nbs-500 uppercase";
+                    b1.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
+                    b1.querySelector('i').className = "w-5 h-5 text-nbs-500";
+
+                    b2.className = "branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-slate-200 bg-white text-slate-700 hover:border-slate-300";
+                    b2.querySelector('span').className = "block text-xs font-semibold text-slate-400 uppercase";
+                    b2.querySelector('i').setAttribute('data-lucide', 'circle');
+                    b2.querySelector('i').className = "w-5 h-5 text-slate-300";
+                } else {
+                    b2.className = "branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-nbs-500 bg-nbs-50/50 text-nbs-700";
+                    b2.querySelector('span').className = "block text-xs font-semibold text-nbs-500 uppercase";
+                    b2.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
+                    b2.querySelector('i').className = "w-5 h-5 text-nbs-500";
+
+                    b1.className = "branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-slate-200 bg-white text-slate-700 hover:border-slate-300";
+                    b1.querySelector('span').className = "block text-xs font-semibold text-slate-400 uppercase";
+                    b1.querySelector('i').setAttribute('data-lucide', 'circle');
+                    b1.querySelector('i').className = "w-5 h-5 text-slate-300";
+                }
+                lucide.createIcons();
+            }
+
+            toggleCustomBranch() {
+                const container = document.getElementById('custom-branch-container');
+                container.classList.toggle('hidden');
+                if (!container.classList.contains('hidden')) {
+                    document.getElementById('custom-branch-input').focus();
+                }
+            }
+
+            setCustomBranch(val) {
+                if (val.trim() !== "") {
+                    this.branch = val;
+                }
+            }
+
+            updateDate(val) { this.date = val; this.calculateSummary(); }
+            updateEncoder(val) { this.encoder = val; }
+            updateTarget(val) { 
+                this.target = parseFloat(val) || 0; 
+                this.calculateSummary(); 
+            }
+
+            renderPresets() {
+                const container = document.getElementById('preset-buttons');
+                container.innerHTML = PRESETS.map(p => `
+                    <button type="button" onclick="app.addPresetItem('${p.name.replace(/'/g, "\\'")}', ${p.price})" class="bg-slate-100 hover:bg-nbs-50 hover:text-nbs-600 text-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 transition font-medium flex items-center space-x-1">
+                        <i data-lucide="plus" class="w-3 h-3"></i>
+                        <span>${p.name} (₱${p.price.toFixed(2)})</span>
+                    </button>
+                `).join('');
+                lucide.createIcons();
+            }
+
+            addPresetItem(name, price) {
+                this.items.push({ id: Date.now(), name, qty: 1, price });
+                this.renderItems();
+                this.calculateSummary();
+            }
+
+            addItemRow() {
+                this.items.push({ id: Date.now(), name: "", qty: 1, price: 0 });
+                this.renderItems();
+                this.calculateSummary();
+            }
+
+            removeItem(id) {
+                this.items = this.items.filter(item => item.id !== id);
+                this.renderItems();
+                this.calculateSummary();
+            }
+
+            updateItem(id, field, value) {
+                const item = this.items.find(i => i.id === id);
+                if (item) {
+                    if (field === 'qty' || field === 'price') {
+                        item[field] = parseFloat(value) || 0;
+                    } else {
+                        item[field] = value;
+                    }
+                    this.calculateSummary();
+                }
+            }
+
+            renderItems() {
+                const container = document.getElementById('items-container');
+                if (this.items.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                            <p class="text-xs text-slate-400 mb-2">Walang pang items na na-encode.</p>
+                            <button onclick="app.addItemRow()" class="text-xs font-semibold text-nbs-500 hover:underline">Magdagdag ng Item ngayon</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.items.map((item, index) => `
+                    <div class="flex items-center space-x-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span class="text-xs font-bold text-slate-400 w-5">${index + 1}.</span>
+                        <div class="flex-1">
+                            <input type="text" value="${item.name}" oninput="app.updateItem(${item.id}, 'name', this.value)" placeholder="Pangalan ng Item..." class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-nbs-500 focus:outline-none font-medium">
+                        </div>
+                        <div class="w-16">
+                            <input type="number" value="${item.qty}" min="1" oninput="app.updateItem(${item.id}, 'qty', this.value)" placeholder="Qty" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-nbs-500 focus:outline-none text-center font-medium">
+                        </div>
+                        <div class="w-20">
+                            <input type="number" value="${item.price || ''}" step="0.01" oninput="app.updateItem(${item.id}, 'price', this.value)" placeholder="Price" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-nbs-500 focus:outline-none text-right font-medium">
+                        </div>
+                        <button onclick="app.removeItem(${item.id})" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+
+            calculateSummary() {
+                let totalQty = 0;
+                let totalSales = 0;
+
+                this.items.forEach(i => {
+                    const q = parseFloat(i.qty) || 0;
+                    const p = parseFloat(i.price) || 0;
+                    totalQty += q;
+                    totalSales += (q * p);
+                });
+
+                document.getElementById('total-qty').innerText = totalQty.toLocaleString();
+                document.getElementById('total-sales').innerText = `₱${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                document.getElementById('summary-date-label').innerText = this.date || 'No Date';
+
+                // MTD Calculation
+                const mtdPercentage = this.target > 0 ? (totalSales / this.target) * 100 : 0;
+                const percEl = document.getElementById('mtd-percentage');
+                const statusEl = document.getElementById('mtd-status');
+                
+                percEl.innerText = `${mtdPercentage.toFixed(1)}%`;
+                if (this.target <= 0) {
+                    statusEl.innerText = "Maglagay ng Target";
+                } else if (mtdPercentage >= 100) {
+                    statusEl.innerText = "Target Naabot! 🎉";
+                    statusEl.className = "text-xs text-emerald-600 font-semibold";
+                } else {
+                    statusEl.innerText = `Kulang pa: ₱${(this.target - totalSales).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    statusEl.className = "text-xs text-slate-400";
+                }
+            }
+
+            generateViberReport() {
+                let totalQty = 0;
+                let totalSales = 0;
+                
+                let itemListText = this.items.map((i, idx) => {
+                    const subtotal = (i.qty || 0) * (i.price || 0);
+                    totalQty += (i.qty || 0);
+                    totalSales += subtotal;
+                    return `${idx + 1}. ${i.name || 'Unnamed'} - Qty: ${i.qty || 0} x ₱${(i.price || 0).toFixed(2)} = ₱${subtotal.toFixed(2)}`;
+                }).join('\n');
+
+                const mtdPercentage = this.target > 0 ? ((totalSales / this.target) * 100).toFixed(1) : '0.0';
+
+                const reportText = `📊 *NBS DAILY SALES REPORT*
+🏢 *Branch:* ${this.branch}
+📅 *Date:* ${this.date}
+👤 *Encoder:* ${this.encoder}
+-------------------------------------
+🛒 *ITEMIZED SALES:*
+${itemListText || 'No items recorded'}
+-------------------------------------
+📈 *SUMMARY:*
+• Total Quantity Sold: ${totalQty} pcs
+• Total Gross Sales: ₱${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+• Monthly Target: ₱${this.target.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+• MTD Progress: ${mtdPercentage}%
+-------------------------------------
+*Accupoint Systems Incorporated*`;
+
+                navigator.clipboard.writeText(reportText).then(() => {
+                    this.showToast("Nakopya na para sa Viber!");
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+            }
+
+            showToast(msg) {
+                const toast = document.getElementById('toast');
+                document.getElementById('toast-msg').innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                toast.classList.add('opacity-100');
+                setTimeout(() => {
+                    toast.classList.remove('opacity-100');
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 2500);
+            }
+
+            getPDFDoc() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Header Background
+                doc.setFillColor(0, 51, 160);
+                doc.rect(0, 0, 210, 35, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(16);
+                doc.setFont('inter', 'bold');
+                doc.text("NBS SALES REPORT", 14, 15);
+
+                doc.setFontSize(9);
+                doc.setFont('inter', 'normal');
+                doc.text("Accupoint Systems Incorporated", 14, 22);
+                doc.text(`Date: ${this.date}`, 196, 15, { align: 'right' });
+                doc.text(`Encoder: ${this.encoder}`, 196, 22, { align: 'right' });
+
+                // Branch Info
+                doc.setTextColor(50, 50, 50);
+                doc.setFontSize(11);
+                doc.setFont('inter', 'bold');
+                doc.text(`Branch: ${this.branch}`, 14, 45);
+
+                let totalQty = 0;
+                let totalSales = 0;
+
+                const tableRows = this.items.map((i, index) => {
+                    const subtotal = (i.qty || 0) * (i.price || 0);
+                    totalQty += (i.qty || 0);
+                    totalSales += subtotal;
+                    return [
+                        index + 1,
+                        i.name || 'Unnamed Item',
+                        i.qty || 0,
+                        `₱${(i.price || 0).toFixed(2)}`,
+                        `₱${subtotal.toFixed(2)}`
+                    ];
+                });
+
+                // Table Generation
+                doc.autoTable({
+                    startY: 52,
+                    head: [['#', 'Item Description', 'Qty', 'Unit Price', 'Subtotal']],
+                    body: tableRows,
+                    theme: 'striped',
+                    headStyles: { fillColor: [0, 51, 160], fontStyle: 'bold', fontSize: 9 },
+                    bodyStyles: { fontSize: 9 },
+                    columnStyles: {
+                        0: { cellWidth: 10 },
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 20, halign: 'center' },
+                        3: { cellWidth: 30, halign: 'right' },
+                        4: { cellWidth: 35, halign: 'right' }
+                    }
+                });
+
+                const finalY = doc.lastAutoTable.finalY + 10;
+
+                // Summary Box
+                doc.setFillColor(245, 247, 250);
+                doc.roundedRect(14, finalY, 182, 30, 3, 3, 'F');
+
+                doc.setFontSize(10);
+                doc.setFont('inter', 'bold');
+                doc.text("SUMMARY OF SALES", 20, finalY + 8);
+
+                doc.setFont('inter', 'normal');
+                doc.setFontSize(9);
+                doc.text(`Total Quantity Sold: ${totalQty} pcs`, 20, finalY + 18);
+                doc.text(`Total Gross Sales: ₱${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, finalY + 24);
+
+                const mtdPercentage = this.target > 0 ? ((totalSales / this.target) * 100).toFixed(1) : '0.0';
+                doc.text(`Monthly Target: ₱${this.target.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 110, finalY + 18);
+                doc.text(`MTD Progress: ${mtdPercentage}%`, 110, finalY + 24);
+
+                // Footer
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text("Generated via NBS Sales Reporter (Accupoint Systems - Merchandiser Edition)", 105, 285, { align: 'center' });
+
+                return doc;
+            }
+
+            downloadPDF() {
+                const doc = this.getPDFDoc();
+                doc.save(`NBS_Sales_Report_${this.branch.replace(/\s+/g, '_')}_${this.date}.pdf`);
+                this.showToast("Na-download na ang PDF!");
+            }
+
+            previewPDF() {
+                const doc = this.getPDFDoc();
+                const pdfDataUri = doc.output('datauristring');
+                document.getElementById('pdf-preview-frame').src = pdfDataUri;
+                document.getElementById('pdf-modal').classList.remove('hidden');
+            }
+
+            closeModal() {
+                document.getElementById('pdf-modal').classList.add('hidden');
+            }
+
+            resetForm() {
+                if (confirm("Gusto mo bang i-reset ang lahat ng na-encode?")) {
+                    this.items = [];
+                    this.renderItems();
+                    this.calculateSummary();
+                    this.showToast("Na-reset na ang form.");
+                }
+            }
+        }
+
+        const app = new SalesApp();
+    </script>
+</body>
+</html>
