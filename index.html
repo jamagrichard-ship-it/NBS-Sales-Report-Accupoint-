@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NBS Sales Reporter | Accupoint Systems</title>
     <meta name="theme-color" content="#0033A0">
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -14,583 +14,1376 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        nbs: {
-                            50: '#e6edf8',
-                            100: '#cce0f1',
-                            500: '#0033A0',
-                            600: '#002880',
-                            700: '#001d60',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
+        }
+        /* Custom Viber preview box */
+        .viber-box {
+            background-color: #7360f212;
+            border-left: 4px solid #7360f2;
+        }
+        /* Smooth custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+<body class="text-slate-800 min-h-screen flex flex-col justify-between selection:bg-blue-100 selection:text-blue-900">
 
-    <!-- Header -->
-    <header class="bg-nbs-500 text-white shadow-md sticky top-0 z-40">
-        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="bg-white/10 p-2 rounded-xl border border-white/20">
-                    <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-full shadow-2xl transform -translate-y-24 opacity-0 transition-all duration-300 w-[92%] max-w-md justify-center text-sm font-semibold border border-slate-700 pointer-events-none">
+        <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400 flex-shrink-0"></i>
+        <span id="toast-message">Na-copy na sa clipboard!</span>
+    </div>
+
+    <!-- =========================================================
+         LARGE FULL-SCREEN REPORT VIEWER MODAL
+    ========================================================== -->
+    <div id="large-viewer-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex-col justify-between p-3 sm:p-6 transition-opacity">
+        <div class="max-w-lg w-full mx-auto bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+            <!-- Modal Header -->
+            <div class="bg-[#0033A0] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-white/15 rounded-xl">
+                        <i data-lucide="maximize-2" class="w-5 h-5 text-amber-300"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-base leading-tight">Full Report Preview</h3>
+                        <p id="large-viewer-subtitle" class="text-[11px] text-blue-200 font-medium">Malaking View para madaling basahin</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="font-bold text-base leading-tight tracking-wide">NBS Sales Reporter</h1>
-                    <p class="text-xs text-blue-200">Accupoint Systems Incorporated</p>
+                <button type="button" id="btn-close-large-viewer" class="p-2 rounded-full bg-white/15 hover:bg-white/25 text-white transition active:scale-95" aria-label="Close preview">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Large Readable Content Body -->
+            <div class="p-5 sm:p-6 overflow-y-auto flex-grow space-y-4 bg-slate-50">
+                <!-- Structured Highlight Cards -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+                        <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Unofficial Daily Sales</span>
+                        <p id="lv-daily-sales" class="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5">₱0.00</p>
+                    </div>
+                    <div class="bg-blue-50 p-3.5 rounded-2xl border border-blue-200 shadow-xs">
+                        <span class="text-[10px] font-extrabold text-[#0033A0] uppercase tracking-wider">MTD Sales</span>
+                        <p id="lv-mtd-sales" class="text-xl sm:text-2xl font-black text-[#0033A0] mt-0.5">₱0.00</p>
+                    </div>
+                </div>
+
+                <!-- Large Viber Text Block -->
+                <div class="bg-white p-5 rounded-2xl border-2 border-purple-200 shadow-sm">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
+                        <span class="text-xs font-extrabold text-purple-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="file-text" class="w-4 h-4"></i> Exact Viber Report Text
+                        </span>
+                        <span class="text-[11px] font-bold text-slate-400" id="lv-qty-badge">0 PCS</span>
+                    </div>
+                    <pre id="large-viewer-text" class="whitespace-pre-wrap font-mono text-base sm:text-lg font-bold text-slate-900 leading-relaxed select-all"></pre>
                 </div>
             </div>
-            <div class="flex items-center space-x-2">
-                <button onclick="app.resetForm()" class="bg-white/10 hover:bg-white/20 p-2 rounded-lg text-xs font-medium flex items-center space-x-1 transition border border-white/10">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                    <span class="hidden sm:inline">Reset</span>
+
+            <!-- Modal Footer Action Buttons -->
+            <div class="p-4 bg-white border-t border-slate-200 grid grid-cols-2 gap-3 flex-shrink-0">
+                <button type="button" id="btn-lv-copy" class="bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-sm py-3.5 px-4 rounded-xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    COPY REPORT
                 </button>
+                <button type="button" id="btn-lv-pdf" class="bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm py-3.5 px-4 rounded-xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2">
+                    <i data-lucide="file-down" class="w-4 h-4"></i>
+                    DOWNLOAD PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         TOP BRAND HEADER (Shown across views)
+    ========================================================== -->
+    <header class="sticky top-0 z-40 shadow-md bg-white border-b border-slate-200">
+        <!-- Accupoint Systems Corporate Top Bar -->
+        <div class="bg-white border-b border-slate-100">
+            <div class="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between">
+                <!-- Embedded Crisp Vector Accupoint Systems Incorporated Logo -->
+                <div class="flex items-center gap-2" aria-label="Accupoint Systems Incorporated">
+                    <svg class="h-8 w-auto" viewBox="0 0 360 95" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 68L36 16C38.5 10 45.5 10 48 16L70 68" stroke="#0033A0" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M26 51H55" stroke="#0033A0" stroke-width="7.5" stroke-linecap="round"/>
+                        <text x="76" y="66" fill="#0033A0" font-family="'Inter', system-ui, sans-serif" font-weight="700" font-size="54" letter-spacing="-1.5">ccupoint</text>
+                        <text x="112" y="83" fill="#0033A0" font-family="'Inter', system-ui, sans-serif" font-weight="600" font-size="16.5" letter-spacing="0.4">Systems Incorporated</text>
+                        <line x1="12" y1="91" x2="348" y2="91" stroke="#0033A0" stroke-width="3.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+
+                <!-- Menu / Home Button (Hidden while on Main Menu) -->
+                <button type="button" id="btn-header-menu" class="hidden items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-[#0033A0] border border-blue-200 px-3 py-1.5 rounded-xl text-xs font-extrabold transition active:scale-95">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    <span>Menu</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- NBS Sales Reporter Sub-Banner -->
+        <div class="bg-gradient-to-r from-[#0033A0] via-blue-800 to-blue-900 text-white">
+            <div class="max-w-md mx-auto px-4 py-2.5 flex justify-between items-center">
+                <div class="flex items-center space-x-2.5">
+                    <div class="p-1.5 bg-amber-400 text-slate-950 rounded-lg shadow-sm">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-sm tracking-tight leading-none">NBS Sales Reporter</h1>
+                        <p id="header-view-label" class="text-[10px] text-blue-200 font-semibold mt-0.5">Main Menu</p>
+                    </div>
+                </div>
+                <span class="text-[11px] bg-blue-950/80 text-amber-300 border border-blue-400/30 px-2.5 py-1 rounded-lg font-extrabold tracking-wide" id="today-date-badge">
+                    TODAY
+                </span>
             </div>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <main class="max-w-3xl w-full mx-auto px-4 py-4 flex-1 space-y-4 pb-24">
-
-        <!-- Branch Selector Card -->
-        <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Select Branch</label>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button type="button" onclick="app.setBranch('2249 Robinson Place Palawan')" id="btn-branch-2249" class="branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-nbs-500 bg-nbs-50/50 text-nbs-700">
-                    <div>
-                        <span class="block text-xs font-semibold text-nbs-500 uppercase">Branch 2249</span>
-                        <span class="font-bold text-sm">Robinson Place Palawan</span>
-                    </div>
-                    <i data-lucide="check-circle-2" class="w-5 h-5 text-nbs-500"></i>
-                </button>
-                <button type="button" onclick="app.setBranch('2381 SM City Puerto Princesa')" id="btn-branch-2381" class="branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-slate-200 bg-white text-slate-700 hover:border-slate-300">
-                    <div>
-                        <span class="block text-xs font-semibold text-slate-400 uppercase">Branch 2381</span>
-                        <span class="font-bold text-sm">SM City Puerto Princesa</span>
-                    </div>
-                    <i data-lucide="circle" class="w-5 h-5 text-slate-300"></i>
-                </button>
-            </div>
-            <div class="mt-3">
-                <button type="button" onclick="app.toggleCustomBranch()" class="text-xs text-nbs-500 font-semibold hover:underline flex items-center space-x-1">
-                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                    <span id="custom-branch-toggle-text">Iba bang Branch / Custom</span>
-                </button>
-                <div id="custom-branch-container" class="hidden mt-2">
-                    <input type="text" id="custom-branch-input" oninput="app.setCustomBranch(this.value)" placeholder="Ilagay ang pangalan ng branch..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-nbs-500 focus:outline-none">
-                </div>
-            </div>
-        </section>
-
-        <!-- Date & Basic Info Card -->
-        <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Sales Date</label>
-                <div class="relative">
-                    <input type="date" id="sales-date" onchange="app.updateDate(this.value)" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-nbs-500 focus:outline-none bg-slate-50 font-medium">
-                </div>
+    <!-- =========================================================
+         VIEW 1: SPLASH / MAIN MENU SCREEN (Bago buksan ang app)
+    ========================================================== -->
+    <section id="view-menu" class="max-w-md mx-auto px-4 py-6 w-full flex-grow flex flex-col justify-center space-y-5">
+        <!-- Welcome Card with Accupoint Emblem -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 text-center space-y-3">
+            <div class="w-20 h-20 mx-auto bg-blue-50 border-2 border-blue-100 rounded-2xl flex items-center justify-center p-2 shadow-xs">
+                <svg class="w-14 h-14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 74L44 22C46.5 16.5 53.5 16.5 56 22L80 74" stroke="#0033A0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M32 57H63" stroke="#0033A0" stroke-width="9" stroke-linecap="round"/>
+                    <line x1="16" y1="86" x2="84" y2="86" stroke="#0033A0" stroke-width="6" stroke-linecap="round"/>
+                </svg>
             </div>
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Merchandiser / Encoder</label>
-                <input type="text" id="encoder-name" value="Richard Jamag" oninput="app.updateEncoder(this.value)" placeholder="Pangalan..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-nbs-500 focus:outline-none bg-slate-50 font-medium">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#0033A0] bg-blue-50 px-3 py-1 rounded-full">Accupoint Systems Incorporated</span>
+                <h2 class="text-xl font-black text-slate-900 mt-2">NBS Sales Reporting</h2>
+                <p class="text-xs text-slate-500 mt-1">Pumili ng module sa ibaba para mag-encode ng daily report o mag-view ng Month-to-Date summary.</p>
             </div>
-        </section>
 
-        <!-- Dynamic Items Encoder Card -->
-        <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                    <h2 class="font-bold text-base text-slate-800">Itemized Sales Encoder</h2>
-                    <p class="text-xs text-slate-500">I-encode ang mga nabiling produkto, presyo, at dami.</p>
+            <!-- Quick Live MTD Snapshot on Menu -->
+            <div class="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 grid grid-cols-2 divide-x divide-slate-200 text-center">
+                <div class="px-2">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Current Month MTD</p>
+                    <p id="menu-quick-mtd" class="text-sm font-black text-[#0033A0] mt-0.5">₱0.00</p>
                 </div>
-                <button onclick="app.addItemRow()" class="bg-nbs-500 hover:bg-nbs-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-sm transition">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span>Magdagdag ng Item</span>
-                </button>
-            </div>
-
-            <!-- Items List Container -->
-            <div id="items-container" class="space-y-3">
-                <!-- Dynamically populated rows -->
-            </div>
-
-            <!-- Quick Add Presets -->
-            <div class="pt-2 border-t border-slate-100">
-                <span class="block text-xs font-medium text-slate-400 mb-2">Mabilisang Idagdag (Presets):</span>
-                <div id="preset-buttons" class="flex flex-wrap gap-1.5">
-                    <!-- Preset chips injected via JS -->
+                <div class="px-2">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Saved Reports</p>
+                    <p id="menu-quick-count" class="text-sm font-black text-emerald-700 mt-0.5">0 Reports</p>
                 </div>
-            </div>
-        </section>
-
-        <!-- MTD / Monthly Target Calculator Card -->
-        <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="font-bold text-base text-slate-800">Month-to-Date (MTD) Target</h2>
-                    <p class="text-xs text-slate-500">Kalkulahin ang progreso kumpara sa buwanang target.</p>
-                </div>
-                <div class="bg-blue-50 text-nbs-500 p-2 rounded-xl">
-                    <i data-lucide="target" class="w-5 h-5"></i>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Monthly Target (₱)</label>
-                    <input type="number" id="monthly-target" oninput="app.updateTarget(this.value)" placeholder="Hal. 150000" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-nbs-500 focus:outline-none font-medium">
-                </div>
-                <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col justify-center">
-                    <span class="text-xs text-slate-500 font-medium">Naabot na Porsyento (%):</span>
-                    <div class="flex items-baseline space-x-2">
-                        <span id="mtd-percentage" class="text-lg font-bold text-nbs-500">0.0%</span>
-                        <span id="mtd-status" class="text-xs text-slate-400">Maglagay ng Target</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Summary & Analytics Card -->
-        <section class="bg-gradient-to-br from-nbs-700 via-nbs-600 to-nbs-500 rounded-2xl p-5 text-white shadow-md space-y-4">
-            <div class="flex items-center justify-between border-b border-white/10 pb-3">
-                <span class="text-xs font-semibold uppercase tracking-wider text-blue-200">Daily Sales Summary</span>
-                <span id="summary-date-label" class="text-xs bg-white/10 px-2.5 py-1 rounded-full font-medium">--</span>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <span class="block text-xs text-blue-200 font-medium">Total Items Sold</span>
-                    <span id="total-qty" class="text-2xl font-bold">0</span>
-                </div>
-                <div>
-                    <span class="block text-xs text-blue-200 font-medium">Total Gross Sales</span>
-                    <span id="total-sales" class="text-2xl font-bold">₱0.00</span>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-white/10">
-                <button onclick="app.generateViberReport()" class="bg-white text-nbs-700 hover:bg-blue-50 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 shadow transition">
-                    <i data-lucide="share-2" class="w-4 h-4 text-nbs-500"></i>
-                    <span>Kopyahin para sa Viber</span>
-                </button>
-                <button onclick="app.downloadPDF()" class="bg-white/10 hover:bg-white/20 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 border border-white/20 transition">
-                    <i data-lucide="file-text" class="w-4 h-4"></i>
-                    <span>I-download ang PDF</span>
-                </button>
-                <button onclick="app.previewPDF()" class="bg-white/10 hover:bg-white/20 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 border border-white/20 transition">
-                    <i data-lucide="eye" class="w-4 h-4"></i>
-                    <span>Silipin ang Report</span>
-                </button>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Success Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2.5 rounded-full text-xs font-medium shadow-xl flex items-center space-x-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
-        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
-        <span id="toast-msg">Matagumpay na nakopya!</span>
-    </div>
-
-    <!-- PDF Modal Viewer -->
-    <div id="pdf-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="bg-nbs-500 text-white p-4 flex items-center justify-between">
-                <h3 class="font-bold text-sm">PDF Report Preview</h3>
-                <button onclick="app.closeModal()" class="bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-4 flex-1 bg-slate-100 overflow-y-auto">
-                <iframe id="pdf-preview-frame" class="w-full h-[400px] sm:h-[500px] bg-white rounded-xl shadow border border-slate-200"></iframe>
-            </div>
-            <div class="p-4 bg-white border-t border-slate-200 flex justify-end space-x-2">
-                <button onclick="app.closeModal()" class="px-4 py-2 text-xs font-semibold bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 transition">Isara</button>
-                <button onclick="app.downloadPDF()" class="px-4 py-2 text-xs font-semibold bg-nbs-500 text-white rounded-xl hover:bg-nbs-600 transition flex items-center space-x-1">
-                    <i data-lucide="download" class="w-4 h-4"></i>
-                    <span>I-download</span>
-                </button>
             </div>
         </div>
-    </div>
 
-    <!-- Footer -->
-    <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200/80 bg-white mt-auto">
-        <p>NBS Sales Reporter &bull; Developed for Accupoint Systems Incorporated</p>
-        <p class="text-[10px] text-slate-400 mt-0.5">Merchandiser Edition &bull; Richard Jamag</p>
+        <!-- Two Large Menu Buttons: DAILY SALES & MTD -->
+        <div class="space-y-3.5">
+            <!-- DAILY SALES MENU BUTTON -->
+            <button type="button" id="btn-open-daily" class="w-full group bg-gradient-to-r from-[#0033A0] to-blue-700 hover:from-blue-900 hover:to-blue-800 text-white p-5 rounded-3xl shadow-lg hover:shadow-xl active:scale-[0.98] transition flex items-center justify-between text-left border border-blue-500/30">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
+                        <i data-lucide="file-plus-2" class="w-7 h-7 text-amber-300"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-200 block">Report Encoder</span>
+                        <span class="text-xl font-black tracking-tight block mt-0.5">DAILY SALES</span>
+                        <span class="text-xs text-blue-100/90 block mt-0.5">Mag-encode, Viber Copy, at Daily PDF</span>
+                    </div>
+                </div>
+                <div class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-white"></i>
+                </div>
+            </button>
+
+            <!-- MTD MENU BUTTON -->
+            <button type="button" id="btn-open-mtd" class="w-full group bg-white hover:bg-blue-50/40 text-slate-900 p-5 rounded-3xl shadow-md hover:shadow-lg active:scale-[0.98] transition flex items-center justify-between text-left border-2 border-[#0033A0]/20 hover:border-[#0033A0]">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-blue-100 text-[#0033A0] rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
+                        <i data-lucide="trending-up" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-[#0033A0] block">Running Total &amp; Analytics</span>
+                        <span class="text-xl font-black tracking-tight text-slate-900 block mt-0.5">MTD</span>
+                        <span class="text-xs text-slate-500 block mt-0.5">Month-to-Date Totals, Breakdown &amp; PDF</span>
+                    </div>
+                </div>
+                <div class="w-9 h-9 rounded-full bg-blue-50 text-[#0033A0] flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </div>
+            </button>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 2: DAILY SALES ENCODER & REPORT VIEW
+    ========================================================== -->
+    <main id="view-daily" class="hidden max-w-md mx-auto px-4 py-4 w-full flex-grow space-y-4">
+        
+        <!-- Top Navigation Switcher Pill -->
+        <div class="grid grid-cols-2 gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-xs">
+            <button type="button" class="bg-[#0033A0] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> DAILY SALES
+            </button>
+            <button type="button" onclick="switchView('mtd')" class="text-slate-600 hover:bg-slate-100 font-extrabold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition">
+                <i data-lucide="trending-up" class="w-3.5 h-3.5 text-[#0033A0]"></i> VIEW MTD
+            </button>
+        </div>
+
+        <!-- Input Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="file-Spreadsheet" class="w-4 h-4 text-[#0033A0]"></i>
+                    Daily Report Details
+                </h2>
+                <button type="button" id="btn-reset" class="text-xs font-bold text-slate-500 hover:text-red-600 bg-slate-100 hover:bg-red-50 px-2.5 py-1 rounded-lg flex items-center gap-1 transition">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear
+                </button>
+            </div>
+
+            <form id="sales-form" onsubmit="return false;" class="space-y-4">
+                
+                <!-- Date Picker -->
+                <div>
+                    <label for="report-date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Reporting Date:
+                    </label>
+                    <input type="date" id="report-date" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm font-bold rounded-xl focus:ring-2 focus:ring-[#0033A0] focus:border-[#0033A0] block p-3 transition">
+                </div>
+
+                <!-- Branch Dropdown -->
+                <div>
+                    <label for="branch-select" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Branch:
+                    </label>
+                    <select id="branch-select" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm font-bold rounded-xl focus:ring-2 focus:ring-[#0033A0] focus:border-[#0033A0] block p-3 transition">
+                        <option value="2249 NBS ROBINSON PALAWAN" selected>2249 NBS ROBINSON PALAWAN</option>
+                        <option value="2381 NBS SM CITY PUERTO PRINCESA">2381 NBS SM CITY PUERTO PRINCESA</option>
+                        <option value="CUSTOM">-- Custom / Manual Entry --</option>
+                    </select>
+
+                    <!-- Custom Branch Field -->
+                    <div id="custom-branch-container" class="mt-2 hidden">
+                        <input type="text" id="custom-branch-input" placeholder="Type custom branch name..." class="w-full bg-amber-50 border border-amber-300 text-slate-900 text-sm font-semibold rounded-xl focus:ring-2 focus:ring-amber-500 block p-3">
+                    </div>
+                </div>
+
+                <!-- Total Unofficial Quantity Sold -->
+                <div>
+                    <label for="report-qty" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Total Unofficial Quantity Sold (PCS):
+                    </label>
+                    <div class="relative">
+                        <input type="number" id="report-qty" min="0" placeholder="0" inputmode="numeric" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-base font-extrabold rounded-xl focus:ring-2 focus:ring-[#0033A0] focus:border-[#0033A0] block p-3 pr-24 transition">
+                        <span class="absolute right-3.5 top-3.5 text-xs font-extrabold text-slate-400 pointer-events-none">PCS TOTAL</span>
+                    </div>
+                </div>
+
+                <!-- Unofficial Daily Sales Amount -->
+                <div>
+                    <label for="report-sales" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Unofficial Daily Sales (₱):
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-3 text-lg font-black text-slate-400 pointer-events-none">₱</span>
+                        <input type="number" id="report-sales" min="0" step="0.01" placeholder="0.00" inputmode="decimal" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-base font-extrabold rounded-xl focus:ring-2 focus:ring-[#0033A0] focus:border-[#0033A0] block p-3 pl-8 transition">
+                    </div>
+                </div>
+
+                <!-- MTD (Month-to-Date) Sales Amount -->
+                <div class="bg-blue-50/70 p-3.5 rounded-2xl border border-blue-200 space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="report-mtd" class="block text-xs font-extrabold text-[#0033A0] uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="trending-up" class="w-4 h-4 text-[#0033A0]"></i>
+                            MTD Sales (Month-to-Date):
+                        </label>
+                        <div class="flex items-center gap-1.5">
+                            <span id="mtd-badge" class="text-[10px] bg-blue-200 text-[#0033A0] font-extrabold px-2 py-0.5 rounded-md">
+                                Auto-Computed
+                            </span>
+                            <button type="button" id="btn-recalc-mtd" class="hidden text-[10px] bg-white border border-blue-300 text-[#0033A0] hover:bg-blue-100 font-bold px-2 py-0.5 rounded-md transition">
+                                Reset Auto
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-3 text-lg font-black text-[#0033A0] pointer-events-none">₱</span>
+                        <input type="number" id="report-mtd" min="0" step="0.01" placeholder="0.00" inputmode="decimal" class="w-full bg-white border border-blue-300 text-slate-900 text-base font-extrabold rounded-xl focus:ring-2 focus:ring-[#0033A0] focus:border-[#0033A0] block p-3 pl-8 transition">
+                    </div>
+                    <p id="mtd-helper-text" class="text-[11px] text-blue-900/80 font-medium leading-snug">
+                        Running total mula 1st day ng buwan hanggang sa napiling petsa.
+                    </p>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Live Output Box -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="message-square-text" class="w-4 h-4 text-purple-600"></i>
+                    Viber Message Preview
+                </span>
+                <!-- View Large Button -->
+                <button type="button" id="btn-view-large-current" class="text-xs bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition active:scale-95">
+                    <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-amber-300"></i>
+                    View Large
+                </button>
+            </div>
+
+            <!-- Preview Textarea -->
+            <div class="viber-box p-3.5 rounded-xl">
+                <textarea id="viber-output" readonly rows="8" class="w-full bg-transparent border-0 font-mono text-sm font-semibold text-slate-900 focus:ring-0 resize-none p-0 leading-relaxed cursor-text"></textarea>
+            </div>
+
+            <!-- Primary Action Buttons: Save & Copy + Generate PDF -->
+            <div class="space-y-2.5">
+                <button type="button" id="btn-save-and-copy" class="w-full bg-gradient-to-r from-[#0033A0] to-indigo-700 hover:from-blue-900 hover:to-indigo-800 text-white font-extrabold text-sm py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition flex items-center justify-center gap-2">
+                    <i data-lucide="copy-check" class="w-5 h-5"></i>
+                    SAVE &amp; COPY REPORT FOR VIBER
+                </button>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button type="button" id="btn-save" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 px-3 rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        SAVE ONLY
+                    </button>
+                    <button type="button" id="btn-generate-daily-pdf" class="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs py-3 px-3 rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95">
+                        <i data-lucide="file-down" class="w-4 h-4"></i>
+                        GENERATE PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Saved Daily Reports -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                <div>
+                    <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="history" class="w-4 h-4 text-[#0033A0]"></i>
+                        Saved Daily Reports
+                    </h3>
+                    <p class="text-[10px] text-slate-500 mt-0.5">I-tap ang "VIEW LARGE" para palakihin ang report</p>
+                </div>
+                <button type="button" onclick="switchView('mtd')" class="text-[11px] font-extrabold text-[#0033A0] hover:underline">
+                    See All MTD &rarr;
+                </button>
+            </div>
+
+            <div id="daily-history-list" class="space-y-2.5 pt-1 max-h-80 overflow-y-auto">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <!-- =========================================================
+         VIEW 3: MTD SUMMARY & ANALYTICS DASHBOARD
+    ========================================================== -->
+    <section id="view-mtd" class="hidden max-w-md mx-auto px-4 py-4 w-full flex-grow space-y-4">
+        
+        <!-- Top Navigation Switcher Pill -->
+        <div class="grid grid-cols-2 gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-xs">
+            <button type="button" onclick="switchView('daily')" class="text-slate-600 hover:bg-slate-100 font-extrabold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-[#0033A0]"></i> DAILY SALES
+            </button>
+            <button type="button" class="bg-[#0033A0] text-white font-extrabold text-xs py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5">
+                <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> MTD SUMMARY
+            </button>
+        </div>
+
+        <!-- MTD Filter & Summary Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-[#0033A0]"></i>
+                    Month-to-Date (MTD) Overview
+                </h2>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                    <label for="mtd-filter-branch" class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Select Branch</label>
+                    <select id="mtd-filter-branch" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-[#0033A0]">
+                        <option value="ALL">All Branches</option>
+                        <option value="2249 NBS ROBINSON PALAWAN">2249 ROBINSON PALAWAN</option>
+                        <option value="2381 NBS SM CITY PUERTO PRINCESA">2381 SM PUERTO PRINCESA</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="mtd-filter-month" class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Select Month</label>
+                    <input type="month" id="mtd-filter-month" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-[#0033A0]">
+                </div>
+            </div>
+
+            <!-- Highlight MTD Metric Cards -->
+            <div class="bg-gradient-to-br from-[#0033A0] to-blue-800 text-white rounded-2xl p-4 shadow-md space-y-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-200">Total MTD Sales</span>
+                        <p id="mtd-summary-total-sales" class="text-2xl sm:text-3xl font-black tracking-tight mt-0.5">₱0.00</p>
+                    </div>
+                    <div class="p-2 bg-white/15 rounded-xl">
+                        <i data-lucide="trending-up" class="w-5 h-5 text-amber-300"></i>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-2.5 border-t border-white/15 text-xs">
+                    <div>
+                        <span class="text-[10px] text-blue-200 block">Total Quantity Sold</span>
+                        <span id="mtd-summary-total-qty" class="font-extrabold text-sm">0 PCS</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-blue-200 block">Days Reported</span>
+                        <span id="mtd-summary-days-count" class="font-extrabold text-sm">0 Days</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Full MTD Summary PDF Button -->
+            <button type="button" id="btn-export-mtd-pdf" class="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg active:scale-[0.98] transition flex items-center justify-center gap-2">
+                <i data-lucide="file-down" class="w-5 h-5"></i>
+                GENERATE MTD SUMMARY PDF
+            </button>
+        </div>
+
+        <!-- Daily Breakdown List inside MTD View -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="calendar-days" class="w-4 h-4 text-[#0033A0]"></i>
+                    Daily Breakdown &amp; Running MTD
+                </h3>
+                <span id="mtd-breakdown-badge" class="text-[10px] bg-blue-100 text-[#0033A0] font-extrabold px-2 py-0.5 rounded-full">0 entries</span>
+            </div>
+
+            <div id="mtd-breakdown-list" class="space-y-2.5 max-h-[26rem] overflow-y-auto">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+
+    </section>
+
+    <!-- =========================================================
+         BRANDED APP FOOTER (With Richard Jamag Version Credit)
+    ========================================================== -->
+    <footer class="bg-white border-t border-slate-200 py-4 px-4 mt-4">
+        <div class="max-w-md mx-auto flex flex-col items-center justify-center text-center space-y-1">
+            <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-semibold text-slate-500">Powered by</span>
+                <span class="text-xs font-extrabold text-[#0033A0] tracking-tight">Accupoint Systems Incorporated</span>
+            </div>
+            <p class="text-[11px] font-extrabold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                Version of Richard Jamag (Merchandiser)
+            </p>
+        </div>
     </footer>
 
-    <!-- App Logic Script -->
+    <!-- =========================================================
+         APPLICATION JAVASCRIPT LOGIC
+    ========================================================== -->
     <script>
-        const PRESETS = [
-            { name: "Ballpen (Box/Pc)", price: 150.00 },
-            { name: "Notebook", price: 45.00 },
-            { name: "Intermediate Paper", price: 38.50 },
-            { name: "Crayons (24s)", price: 65.00 },
-            { name: "Folder (Long)", price: 12.00 },
-            { name: "Correction Tape", price: 55.00 }
-        ];
-
-        class SalesApp {
-            constructor() {
-                this.branch = "2249 Robinson Place Palawan";
-                this.isCustomBranch = false;
-                this.date = new Date().toISOString().split('T')[0];
-                this.encoder = "Richard Jamag";
-                this.target = 150000;
-                this.items = [
-                    { id: 1, name: "Ballpen (Box/Pc)", qty: 5, price: 150.00 },
-                    { id: 2, name: "Notebook", qty: 12, price: 45.00 }
-                ];
-                this.init();
-            }
-
-            init() {
-                document.getElementById('sales-date').value = this.date;
-                document.getElementById('encoder-name').value = this.encoder;
-                document.getElementById('monthly-target').value = this.target;
-                this.renderPresets();
-                this.renderItems();
-                this.calculateSummary();
-                lucide.createIcons();
-            }
-
-            setBranch(branchName) {
-                this.branch = branchName;
-                this.isCustomBranch = false;
-                document.getElementById('custom-branch-container').classList.add('hidden');
-                
-                // Update UI buttons
-                const b1 = document.getElementById('btn-branch-2249');
-                const b2 = document.getElementById('btn-branch-2381');
-                
-                if (branchName.includes('2249')) {
-                    b1.className = "branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-nbs-500 bg-nbs-50/50 text-nbs-700";
-                    b1.querySelector('span').className = "block text-xs font-semibold text-nbs-500 uppercase";
-                    b1.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
-                    b1.querySelector('i').className = "w-5 h-5 text-nbs-500";
-
-                    b2.className = "branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-slate-200 bg-white text-slate-700 hover:border-slate-300";
-                    b2.querySelector('span').className = "block text-xs font-semibold text-slate-400 uppercase";
-                    b2.querySelector('i').setAttribute('data-lucide', 'circle');
-                    b2.querySelector('i').className = "w-5 h-5 text-slate-300";
-                } else {
-                    b2.className = "branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-nbs-500 bg-nbs-50/50 text-nbs-700";
-                    b2.querySelector('span').className = "block text-xs font-semibold text-nbs-500 uppercase";
-                    b2.querySelector('i').setAttribute('data-lucide', 'check-circle-2');
-                    b2.querySelector('i').className = "w-5 h-5 text-nbs-500";
-
-                    b1.className = "branch-btn text-left p-3 rounded-xl border-2 transition flex items-center justify-between border-slate-200 bg-white text-slate-700 hover:border-slate-300";
-                    b1.querySelector('span').className = "block text-xs font-semibold text-slate-400 uppercase";
-                    b1.querySelector('i').setAttribute('data-lucide', 'circle');
-                    b1.querySelector('i').className = "w-5 h-5 text-slate-300";
-                }
-                lucide.createIcons();
-            }
-
-            toggleCustomBranch() {
-                const container = document.getElementById('custom-branch-container');
-                container.classList.toggle('hidden');
-                if (!container.classList.contains('hidden')) {
-                    document.getElementById('custom-branch-input').focus();
+        // Storage Key
+        const STORAGE_KEY = 'accupoint_nbs_reports_v1';
+        let savedHistory = [];
+        try {
+            savedHistory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            // Migrate older storage key if empty
+            if (savedHistory.length === 0) {
+                const legacy = JSON.parse(localStorage.getItem('nbs_viber_reports_v2') || '[]');
+                if (legacy.length > 0) {
+                    savedHistory = legacy;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedHistory));
                 }
             }
-
-            setCustomBranch(val) {
-                if (val.trim() !== "") {
-                    this.branch = val;
-                }
-            }
-
-            updateDate(val) { this.date = val; this.calculateSummary(); }
-            updateEncoder(val) { this.encoder = val; }
-            updateTarget(val) { 
-                this.target = parseFloat(val) || 0; 
-                this.calculateSummary(); 
-            }
-
-            renderPresets() {
-                const container = document.getElementById('preset-buttons');
-                container.innerHTML = PRESETS.map(p => `
-                    <button type="button" onclick="app.addPresetItem('${p.name.replace(/'/g, "\\'")}', ${p.price})" class="bg-slate-100 hover:bg-nbs-50 hover:text-nbs-600 text-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 transition font-medium flex items-center space-x-1">
-                        <i data-lucide="plus" class="w-3 h-3"></i>
-                        <span>${p.name} (₱${p.price.toFixed(2)})</span>
-                    </button>
-                `).join('');
-                lucide.createIcons();
-            }
-
-            addPresetItem(name, price) {
-                this.items.push({ id: Date.now(), name, qty: 1, price });
-                this.renderItems();
-                this.calculateSummary();
-            }
-
-            addItemRow() {
-                this.items.push({ id: Date.now(), name: "", qty: 1, price: 0 });
-                this.renderItems();
-                this.calculateSummary();
-            }
-
-            removeItem(id) {
-                this.items = this.items.filter(item => item.id !== id);
-                this.renderItems();
-                this.calculateSummary();
-            }
-
-            updateItem(id, field, value) {
-                const item = this.items.find(i => i.id === id);
-                if (item) {
-                    if (field === 'qty' || field === 'price') {
-                        item[field] = parseFloat(value) || 0;
-                    } else {
-                        item[field] = value;
-                    }
-                    this.calculateSummary();
-                }
-            }
-
-            renderItems() {
-                const container = document.getElementById('items-container');
-                if (this.items.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                            <p class="text-xs text-slate-400 mb-2">Walang pang items na na-encode.</p>
-                            <button onclick="app.addItemRow()" class="text-xs font-semibold text-nbs-500 hover:underline">Magdagdag ng Item ngayon</button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = this.items.map((item, index) => `
-                    <div class="flex items-center space-x-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                        <span class="text-xs font-bold text-slate-400 w-5">${index + 1}.</span>
-                        <div class="flex-1">
-                            <input type="text" value="${item.name}" oninput="app.updateItem(${item.id}, 'name', this.value)" placeholder="Pangalan ng Item..." class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-nbs-500 focus:outline-none font-medium">
-                        </div>
-                        <div class="w-16">
-                            <input type="number" value="${item.qty}" min="1" oninput="app.updateItem(${item.id}, 'qty', this.value)" placeholder="Qty" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-nbs-500 focus:outline-none text-center font-medium">
-                        </div>
-                        <div class="w-20">
-                            <input type="number" value="${item.price || ''}" step="0.01" oninput="app.updateItem(${item.id}, 'price', this.value)" placeholder="Price" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-nbs-500 focus:outline-none text-right font-medium">
-                        </div>
-                        <button onclick="app.removeItem(${item.id})" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                `).join('');
-                lucide.createIcons();
-            }
-
-            calculateSummary() {
-                let totalQty = 0;
-                let totalSales = 0;
-
-                this.items.forEach(i => {
-                    const q = parseFloat(i.qty) || 0;
-                    const p = parseFloat(i.price) || 0;
-                    totalQty += q;
-                    totalSales += (q * p);
-                });
-
-                document.getElementById('total-qty').innerText = totalQty.toLocaleString();
-                document.getElementById('total-sales').innerText = `₱${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                document.getElementById('summary-date-label').innerText = this.date || 'No Date';
-
-                // MTD Calculation
-                const mtdPercentage = this.target > 0 ? (totalSales / this.target) * 100 : 0;
-                const percEl = document.getElementById('mtd-percentage');
-                const statusEl = document.getElementById('mtd-status');
-                
-                percEl.innerText = `${mtdPercentage.toFixed(1)}%`;
-                if (this.target <= 0) {
-                    statusEl.innerText = "Maglagay ng Target";
-                } else if (mtdPercentage >= 100) {
-                    statusEl.innerText = "Target Naabot! 🎉";
-                    statusEl.className = "text-xs text-emerald-600 font-semibold";
-                } else {
-                    statusEl.innerText = `Kulang pa: ₱${(this.target - totalSales).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                    statusEl.className = "text-xs text-slate-400";
-                }
-            }
-
-            generateViberReport() {
-                let totalQty = 0;
-                let totalSales = 0;
-                
-                let itemListText = this.items.map((i, idx) => {
-                    const subtotal = (i.qty || 0) * (i.price || 0);
-                    totalQty += (i.qty || 0);
-                    totalSales += subtotal;
-                    return `${idx + 1}. ${i.name || 'Unnamed'} - Qty: ${i.qty || 0} x ₱${(i.price || 0).toFixed(2)} = ₱${subtotal.toFixed(2)}`;
-                }).join('\n');
-
-                const mtdPercentage = this.target > 0 ? ((totalSales / this.target) * 100).toFixed(1) : '0.0';
-
-                const reportText = `📊 *NBS DAILY SALES REPORT*
-🏢 *Branch:* ${this.branch}
-📅 *Date:* ${this.date}
-👤 *Encoder:* ${this.encoder}
--------------------------------------
-🛒 *ITEMIZED SALES:*
-${itemListText || 'No items recorded'}
--------------------------------------
-📈 *SUMMARY:*
-• Total Quantity Sold: ${totalQty} pcs
-• Total Gross Sales: ₱${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-• Monthly Target: ₱${this.target.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-• MTD Progress: ${mtdPercentage}%
--------------------------------------
-*Accupoint Systems Incorporated*`;
-
-                navigator.clipboard.writeText(reportText).then(() => {
-                    this.showToast("Nakopya na para sa Viber!");
-                }).catch(err => {
-                    console.error('Failed to copy: ', err);
-                });
-            }
-
-            showToast(msg) {
-                const toast = document.getElementById('toast');
-                document.getElementById('toast-msg').innerText = msg;
-                toast.classList.remove('opacity-0', 'pointer-events-none');
-                toast.classList.add('opacity-100');
-                setTimeout(() => {
-                    toast.classList.remove('opacity-100');
-                    toast.classList.add('opacity-0', 'pointer-events-none');
-                }, 2500);
-            }
-
-            getPDFDoc() {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-
-                // Header Background
-                doc.setFillColor(0, 51, 160);
-                doc.rect(0, 0, 210, 35, 'F');
-
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(16);
-                doc.setFont('inter', 'bold');
-                doc.text("NBS SALES REPORT", 14, 15);
-
-                doc.setFontSize(9);
-                doc.setFont('inter', 'normal');
-                doc.text("Accupoint Systems Incorporated", 14, 22);
-                doc.text(`Date: ${this.date}`, 196, 15, { align: 'right' });
-                doc.text(`Encoder: ${this.encoder}`, 196, 22, { align: 'right' });
-
-                // Branch Info
-                doc.setTextColor(50, 50, 50);
-                doc.setFontSize(11);
-                doc.setFont('inter', 'bold');
-                doc.text(`Branch: ${this.branch}`, 14, 45);
-
-                let totalQty = 0;
-                let totalSales = 0;
-
-                const tableRows = this.items.map((i, index) => {
-                    const subtotal = (i.qty || 0) * (i.price || 0);
-                    totalQty += (i.qty || 0);
-                    totalSales += subtotal;
-                    return [
-                        index + 1,
-                        i.name || 'Unnamed Item',
-                        i.qty || 0,
-                        `₱${(i.price || 0).toFixed(2)}`,
-                        `₱${subtotal.toFixed(2)}`
-                    ];
-                });
-
-                // Table Generation
-                doc.autoTable({
-                    startY: 52,
-                    head: [['#', 'Item Description', 'Qty', 'Unit Price', 'Subtotal']],
-                    body: tableRows,
-                    theme: 'striped',
-                    headStyles: { fillColor: [0, 51, 160], fontStyle: 'bold', fontSize: 9 },
-                    bodyStyles: { fontSize: 9 },
-                    columnStyles: {
-                        0: { cellWidth: 10 },
-                        1: { cellWidth: 'auto' },
-                        2: { cellWidth: 20, halign: 'center' },
-                        3: { cellWidth: 30, halign: 'right' },
-                        4: { cellWidth: 35, halign: 'right' }
-                    }
-                });
-
-                const finalY = doc.lastAutoTable.finalY + 10;
-
-                // Summary Box
-                doc.setFillColor(245, 247, 250);
-                doc.roundedRect(14, finalY, 182, 30, 3, 3, 'F');
-
-                doc.setFontSize(10);
-                doc.setFont('inter', 'bold');
-                doc.text("SUMMARY OF SALES", 20, finalY + 8);
-
-                doc.setFont('inter', 'normal');
-                doc.setFontSize(9);
-                doc.text(`Total Quantity Sold: ${totalQty} pcs`, 20, finalY + 18);
-                doc.text(`Total Gross Sales: ₱${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, finalY + 24);
-
-                const mtdPercentage = this.target > 0 ? ((totalSales / this.target) * 100).toFixed(1) : '0.0';
-                doc.text(`Monthly Target: ₱${this.target.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 110, finalY + 18);
-                doc.text(`MTD Progress: ${mtdPercentage}%`, 110, finalY + 24);
-
-                // Footer
-                doc.setFontSize(8);
-                doc.setTextColor(150, 150, 150);
-                doc.text("Generated via NBS Sales Reporter (Accupoint Systems - Merchandiser Edition)", 105, 285, { align: 'center' });
-
-                return doc;
-            }
-
-            downloadPDF() {
-                const doc = this.getPDFDoc();
-                doc.save(`NBS_Sales_Report_${this.branch.replace(/\s+/g, '_')}_${this.date}.pdf`);
-                this.showToast("Na-download na ang PDF!");
-            }
-
-            previewPDF() {
-                const doc = this.getPDFDoc();
-                const pdfDataUri = doc.output('datauristring');
-                document.getElementById('pdf-preview-frame').src = pdfDataUri;
-                document.getElementById('pdf-modal').classList.remove('hidden');
-            }
-
-            closeModal() {
-                document.getElementById('pdf-modal').classList.add('hidden');
-            }
-
-            resetForm() {
-                if (confirm("Gusto mo bang i-reset ang lahat ng na-encode?")) {
-                    this.items = [];
-                    this.renderItems();
-                    this.calculateSummary();
-                    this.showToast("Na-reset na ang form.");
-                }
-            }
+        } catch (err) {
+            savedHistory = [];
         }
 
-        const app = new SalesApp();
+        // Views & Navigation Elements
+        const viewMenu = document.getElementById('view-menu');
+        const viewDaily = document.getElementById('view-daily');
+        const viewMtd = document.getElementById('view-mtd');
+        const btnHeaderMenu = document.getElementById('btn-header-menu');
+        const headerViewLabel = document.getElementById('header-view-label');
+        const todayDateBadge = document.getElementById('today-date-badge');
+
+        // Daily Sales Form Elements
+        const reportDateInput = document.getElementById('report-date');
+        const branchSelect = document.getElementById('branch-select');
+        const customBranchContainer = document.getElementById('custom-branch-container');
+        const customBranchInput = document.getElementById('custom-branch-input');
+        const reportQtyInput = document.getElementById('report-qty');
+        const reportSalesInput = document.getElementById('report-sales');
+        const reportMtdInput = document.getElementById('report-mtd');
+        const mtdBadge = document.getElementById('mtd-badge');
+        const btnRecalcMtd = document.getElementById('btn-recalc-mtd');
+        const mtdHelperText = document.getElementById('mtd-helper-text');
+        const viberOutput = document.getElementById('viber-output');
+        const dailyHistoryList = document.getElementById('daily-history-list');
+
+        // MTD Dashboard Elements
+        const mtdFilterBranch = document.getElementById('mtd-filter-branch');
+        const mtdFilterMonth = document.getElementById('mtd-filter-month');
+        const mtdSummaryTotalSales = document.getElementById('mtd-summary-total-sales');
+        const mtdSummaryTotalQty = document.getElementById('mtd-summary-total-qty');
+        const mtdSummaryDaysCount = document.getElementById('mtd-summary-days-count');
+        const mtdBreakdownBadge = document.getElementById('mtd-breakdown-badge');
+        const mtdBreakdownList = document.getElementById('mtd-breakdown-list');
+
+        // Large Viewer Modal Elements
+        const largeViewerModal = document.getElementById('large-viewer-modal');
+        const largeViewerText = document.getElementById('large-viewer-text');
+        const lvDailySales = document.getElementById('lv-daily-sales');
+        const lvMtdSales = document.getElementById('lv-mtd-sales');
+        const lvQtyBadge = document.getElementById('lv-qty-badge');
+        let activeLargeReportData = null;
+
+        let isManualMtd = false;
+
+        // ==========================================
+        // 1. INITIALIZATION & NAVIGATION
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
+            const currentYearMonth = `${year}-${month}`;
+
+            reportDateInput.value = todayStr;
+            mtdFilterMonth.value = currentYearMonth;
+
+            const shortMonth = today.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+            todayDateBadge.textContent = `${shortMonth} ${parseInt(day, 10)}, ${year}`;
+
+            // Initial Calculations
+            recalculateMTD();
+            updateOutput();
+            updateMenuSnapshot();
+            renderDailyHistory();
+            renderMtdDashboard();
+
+            // Menu Navigation Buttons
+            document.getElementById('btn-open-daily').addEventListener('click', () => switchView('daily'));
+            document.getElementById('btn-open-mtd').addEventListener('click', () => switchView('mtd'));
+            btnHeaderMenu.addEventListener('click', () => switchView('menu'));
+
+            // Form Live Listeners
+            reportDateInput.addEventListener('input', () => {
+                isManualMtd = false;
+                if (reportDateInput.value) {
+                    mtdFilterMonth.value = reportDateInput.value.substring(0, 7);
+                }
+                recalculateMTD();
+                updateOutput();
+            });
+
+            branchSelect.addEventListener('change', () => {
+                if (branchSelect.value === 'CUSTOM') {
+                    customBranchContainer.classList.remove('hidden');
+                    customBranchInput.focus();
+                } else {
+                    customBranchContainer.classList.add('hidden');
+                }
+                isManualMtd = false;
+                recalculateMTD();
+                updateOutput();
+            });
+
+            customBranchInput.addEventListener('input', () => {
+                isManualMtd = false;
+                recalculateMTD();
+                updateOutput();
+            });
+
+            reportQtyInput.addEventListener('input', updateOutput);
+
+            reportSalesInput.addEventListener('input', () => {
+                if (!isManualMtd) {
+                    recalculateMTD();
+                }
+                updateOutput();
+            });
+
+            reportMtdInput.addEventListener('input', () => {
+                isManualMtd = true;
+                mtdBadge.textContent = 'Manual Edit';
+                mtdBadge.className = 'text-[10px] bg-amber-200 text-amber-950 font-extrabold px-2 py-0.5 rounded-md';
+                btnRecalcMtd.classList.remove('hidden');
+                updateOutput();
+            });
+
+            btnRecalcMtd.addEventListener('click', () => {
+                isManualMtd = false;
+                recalculateMTD();
+                updateOutput();
+                showToast('Na-recalculate na ang MTD mula sa saved reports.');
+            });
+
+            // MTD Filter Listeners
+            mtdFilterBranch.addEventListener('change', renderMtdDashboard);
+            mtdFilterMonth.addEventListener('change', renderMtdDashboard);
+
+            // Large Viewer Listeners
+            document.getElementById('btn-view-large-current').addEventListener('click', () => {
+                openLargeViewer({
+                    date: reportDateInput.value,
+                    branch: getSelectedBranch(),
+                    qty: reportQtyInput.value ? parseInt(reportQtyInput.value, 10) : 0,
+                    sales: parseFloat(reportSalesInput.value) || 0,
+                    mtd: parseFloat(reportMtdInput.value) || 0
+                });
+            });
+
+            document.getElementById('btn-close-large-viewer').addEventListener('click', closeLargeViewer);
+            largeViewerModal.addEventListener('click', (e) => {
+                if (e.target === largeViewerModal) closeLargeViewer();
+            });
+
+            document.getElementById('btn-lv-copy').addEventListener('click', () => {
+                if (!activeLargeReportData) return;
+                const text = formatReportTextFromObj(activeLargeReportData);
+                copyTextToClipboard(text, 'Na-copy na ang malaking report para sa Viber!');
+            });
+
+            document.getElementById('btn-lv-pdf').addEventListener('click', () => {
+                if (!activeLargeReportData) return;
+                generateSingleReportPDF(activeLargeReportData);
+            });
+
+            // Save, Copy, Reset, and PDF Buttons
+            document.getElementById('btn-save-and-copy').addEventListener('click', async () => {
+                const saved = saveCurrentReport();
+                const textToCopy = generateViberText();
+                const msg = saved ? 'Na-save at na-copy na para sa Viber!' : 'Copied Report for Viber!';
+                await copyTextToClipboard(textToCopy, msg);
+            });
+
+            document.getElementById('btn-save').addEventListener('click', () => {
+                if (saveCurrentReport()) {
+                    showToast('Na-save na sa History!');
+                }
+            });
+
+            document.getElementById('btn-reset').addEventListener('click', () => {
+                reportQtyInput.value = '';
+                reportSalesInput.value = '';
+                isManualMtd = false;
+                recalculateMTD();
+                updateOutput();
+                showToast('Na-clear na ang inputs.');
+            });
+
+            document.getElementById('btn-generate-daily-pdf').addEventListener('click', () => {
+                const currentObj = {
+                    date: reportDateInput.value,
+                    branch: getSelectedBranch(),
+                    qty: reportQtyInput.value ? parseInt(reportQtyInput.value, 10) : 0,
+                    sales: parseFloat(reportSalesInput.value) || 0,
+                    mtd: parseFloat(reportMtdInput.value) || 0
+                };
+                generateSingleReportPDF(currentObj);
+            });
+
+            document.getElementById('btn-export-mtd-pdf').addEventListener('click', generateMtdSummaryPDF);
+        });
+
+        window.switchView = function(targetView) {
+            viewMenu.classList.add('hidden');
+            viewDaily.classList.add('hidden');
+            viewMtd.classList.add('hidden');
+
+            if (targetView === 'menu') {
+                viewMenu.classList.remove('hidden');
+                btnHeaderMenu.classList.add('hidden');
+                btnHeaderMenu.classList.remove('flex');
+                headerViewLabel.textContent = 'Main Menu';
+                updateMenuSnapshot();
+            } else if (targetView === 'daily') {
+                viewDaily.classList.remove('hidden');
+                btnHeaderMenu.classList.remove('hidden');
+                btnHeaderMenu.classList.add('flex');
+                headerViewLabel.textContent = 'Daily Sales Encoder';
+                recalculateMTD();
+                updateOutput();
+                renderDailyHistory();
+            } else if (targetView === 'mtd') {
+                viewMtd.classList.remove('hidden');
+                btnHeaderMenu.classList.remove('hidden');
+                btnHeaderMenu.classList.add('flex');
+                headerViewLabel.textContent = 'Month-to-Date (MTD) Summary';
+                renderMtdDashboard();
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            lucide.createIcons();
+        };
+
+        // ==========================================
+        // 2. CORE FORMATTING & MTD COMPUTATION
+        // ==========================================
+        function formatViberDate(dateStr) {
+            if (!dateStr) return '';
+            const [y, m, d] = dateStr.split('-');
+            const dateObj = new Date(y, m - 1, d);
+            const monthName = dateObj.toLocaleString('en-US', { month: 'long' }).toUpperCase();
+            return `${monthName} ${parseInt(d, 10)}, ${y}`;
+        }
+
+        function formatMonthYearLabel(yearMonthStr) {
+            if (!yearMonthStr) return '';
+            const [y, m] = yearMonthStr.split('-');
+            const dateObj = new Date(y, m - 1, 1);
+            const monthName = dateObj.toLocaleString('en-US', { month: 'long' }).toUpperCase();
+            return `${monthName} ${y}`;
+        }
+
+        function formatPeso(val) {
+            const num = parseFloat(val) || 0;
+            return '₱' + num.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Plain PHP format for PDF fonts that do not support Unicode Peso symbol cleanly
+        function formatPhpPlain(val) {
+            const num = parseFloat(val) || 0;
+            return 'PHP ' + num.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function getSelectedBranch() {
+            if (branchSelect.value === 'CUSTOM') {
+                return customBranchInput.value.trim().toUpperCase() || 'CUSTOM BRANCH';
+            }
+            return branchSelect.value;
+        }
+
+        function calculateMTDFor(targetDateStr, targetBranch, currentInputSales) {
+            if (!targetDateStr) return parseFloat(currentInputSales) || 0;
+
+            const targetYearMonth = targetDateStr.substring(0, 7);
+            let previousDaysTotal = 0;
+            let daysCounted = 0;
+
+            savedHistory.forEach(item => {
+                if (
+                    item.branch === targetBranch &&
+                    item.date &&
+                    item.date.startsWith(targetYearMonth) &&
+                    item.date < targetDateStr
+                ) {
+                    previousDaysTotal += (parseFloat(item.sales) || 0);
+                    daysCounted++;
+                }
+            });
+
+            const todaySales = parseFloat(currentInputSales) || 0;
+            const totalMtd = previousDaysTotal + todaySales;
+
+            if (daysCounted > 0) {
+                mtdHelperText.textContent = `Prev saved (${daysCounted} day${daysCounted > 1 ? 's' : ''}): ${formatPeso(previousDaysTotal)} + Today: ${formatPeso(todaySales)}`;
+            } else {
+                mtdHelperText.textContent = `Wala pang naunang saved report ngayong buwan para sa branch na ito.`;
+            }
+
+            return totalMtd;
+        }
+
+        function recalculateMTD() {
+            const targetDate = reportDateInput.value;
+            const targetBranch = getSelectedBranch();
+            const currentSales = reportSalesInput.value;
+
+            const mtd = calculateMTDFor(targetDate, targetBranch, currentSales);
+            reportMtdInput.value = mtd > 0 ? mtd.toFixed(2) : '';
+
+            mtdBadge.textContent = 'Auto-Computed';
+            mtdBadge.className = 'text-[10px] bg-blue-200 text-[#0033A0] font-extrabold px-2 py-0.5 rounded-md';
+            btnRecalcMtd.classList.add('hidden');
+        }
+
+        function formatReportTextFromObj(obj) {
+            const dateFormatted = formatViberDate(obj.date);
+            const branchFormatted = obj.branch || 'BRANCH';
+            const qtyFormatted = parseInt(obj.qty, 10) || 0;
+            const salesFormatted = formatPeso(obj.sales);
+            const mtdFormatted = formatPeso(obj.mtd);
+
+            return `DAILY SALES REPORT\n\nDATE: ${dateFormatted}\n\nBRANCH: ${branchFormatted}\nTOTAL UNOFFICIAL QUANTITY SOLD: ${qtyFormatted} PCS TOTAL\nUNOFFICIAL DAILY SALES: *${salesFormatted}*\nMTD SALES: *${mtdFormatted}*`;
+        }
+
+        function generateViberText() {
+            return formatReportTextFromObj({
+                date: reportDateInput.value,
+                branch: getSelectedBranch(),
+                qty: reportQtyInput.value ? parseInt(reportQtyInput.value, 10) : 0,
+                sales: parseFloat(reportSalesInput.value) || 0,
+                mtd: parseFloat(reportMtdInput.value) || 0
+            });
+        }
+
+        function updateOutput() {
+            viberOutput.value = generateViberText();
+        }
+
+        function updateMenuSnapshot() {
+            const today = new Date();
+            const ym = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+            const monthReports = savedHistory.filter(item => item.date && item.date.startsWith(ym));
+            const totalSales = monthReports.reduce((acc, r) => acc + (parseFloat(r.sales) || 0), 0);
+
+            document.getElementById('menu-quick-mtd').textContent = formatPeso(totalSales);
+            document.getElementById('menu-quick-count').textContent = `${savedHistory.length} Report${savedHistory.length === 1 ? '' : 's'}`;
+        }
+
+        // ==========================================
+        // 3. LARGE FULL-SCREEN REPORT VIEWER
+        // ==========================================
+        window.openLargeViewer = function(reportObj) {
+            activeLargeReportData = reportObj;
+
+            const resolvedMtd = reportObj.mtd !== undefined
+                ? reportObj.mtd
+                : calculateMTDFor(reportObj.date, reportObj.branch, reportObj.sales);
+
+            activeLargeReportData.mtd = resolvedMtd;
+
+            lvDailySales.textContent = formatPeso(reportObj.sales);
+            lvMtdSales.textContent = formatPeso(resolvedMtd);
+            lvQtyBadge.textContent = `${parseInt(reportObj.qty, 10) || 0} PCS TOTAL`;
+            largeViewerText.textContent = formatReportTextFromObj(activeLargeReportData);
+
+            largeViewerModal.classList.remove('hidden');
+            largeViewerModal.classList.add('flex');
+            lucide.createIcons();
+        };
+
+        window.openLargeViewerById = function(id) {
+            const item = savedHistory.find(r => r.id === id);
+            if (!item) return;
+            openLargeViewer({ ...item });
+        };
+
+        function closeLargeViewer() {
+            largeViewerModal.classList.add('hidden');
+            largeViewerModal.classList.remove('flex');
+        }
+
+        // ==========================================
+        // 4. STORAGE, HISTORY & MTD DASHBOARD
+        // ==========================================
+        function refreshStoredMTDChain(branchName, yearMonth) {
+            const matching = savedHistory
+                .filter(item => item.branch === branchName && item.date && item.date.startsWith(yearMonth))
+                .sort((a, b) => a.date.localeCompare(b.date));
+
+            let runningTotal = 0;
+            matching.forEach(item => {
+                runningTotal += (parseFloat(item.sales) || 0);
+                item.mtd = runningTotal;
+            });
+        }
+
+        function saveCurrentReport() {
+            const dateVal = reportDateInput.value;
+            const branchVal = getSelectedBranch();
+            const qty = reportQtyInput.value ? parseInt(reportQtyInput.value, 10) : 0;
+            const sales = parseFloat(reportSalesInput.value) || 0;
+            const mtd = parseFloat(reportMtdInput.value) || sales;
+
+            if (!dateVal) {
+                showToast('Pakipili ang Reporting Date!');
+                return false;
+            }
+
+            if (!qty && !sales) {
+                showToast('Pakilagay ang Qty at Daily Sales bago i-save!');
+                return false;
+            }
+
+            const existingIndex = savedHistory.findIndex(
+                item => item.date === dateVal && item.branch === branchVal
+            );
+
+            const item = {
+                id: existingIndex !== -1 ? savedHistory[existingIndex].id : Date.now(),
+                date: dateVal,
+                branch: branchVal,
+                qty: qty,
+                sales: sales,
+                mtd: mtd
+            };
+
+            if (existingIndex !== -1) {
+                savedHistory[existingIndex] = item;
+            } else {
+                savedHistory.unshift(item);
+            }
+
+            if (!isManualMtd && dateVal) {
+                refreshStoredMTDChain(branchVal, dateVal.substring(0, 7));
+            }
+
+            savedHistory.sort((a, b) => b.date.localeCompare(a.date));
+            if (savedHistory.length > 150) savedHistory.length = 150;
+
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedHistory));
+            } catch (err) {
+                console.error('Storage error:', err);
+            }
+
+            renderDailyHistory();
+            renderMtdDashboard();
+            updateMenuSnapshot();
+            return true;
+        }
+
+        function renderReportCardHTML(item) {
+            const displayMtd = item.mtd !== undefined
+                ? item.mtd
+                : calculateMTDFor(item.date, item.branch, item.sales);
+
+            return `
+                <div class="p-3.5 bg-slate-50 hover:bg-blue-50/40 border border-slate-200 rounded-2xl text-xs transition space-y-2.5">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-grow">
+                            <p class="font-extrabold text-slate-900 truncate">${item.branch}</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">
+                                <span class="font-bold text-slate-700">${formatViberDate(item.date)}</span> &bull; ${item.qty} PCS
+                            </p>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <p class="font-black text-emerald-700 text-sm">${formatPeso(item.sales)}</p>
+                            <p class="text-[11px] text-[#0033A0] font-extrabold">MTD: ${formatPeso(displayMtd)}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-200/80">
+                        <button type="button" onclick="openLargeViewerById(${item.id})" class="col-span-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-[10px] py-1.5 px-2 rounded-lg transition flex items-center justify-center gap-1">
+                            <i data-lucide="maximize-2" class="w-3 h-3 text-amber-300"></i> VIEW LARGE
+                        </button>
+                        <button type="button" onclick="loadHistoryItem(${item.id})" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 font-extrabold text-[10px] py-1.5 px-2 rounded-lg transition flex items-center justify-center gap-1">
+                            <i data-lucide="edit-2" class="w-3 h-3"></i> EDIT
+                        </button>
+                        <div class="flex gap-1">
+                            <button type="button" onclick="copyHistoryItem(${item.id})" title="Copy for Viber" class="flex-1 bg-purple-100 text-purple-800 hover:bg-purple-200 font-extrabold text-[10px] py-1.5 rounded-lg transition flex items-center justify-center">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                            </button>
+                            <button type="button" onclick="deleteHistoryItem(${item.id})" title="Delete" class="flex-1 bg-red-50 text-red-600 hover:bg-red-100 font-extrabold text-[10px] py-1.5 rounded-lg transition flex items-center justify-center">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDailyHistory() {
+            dailyHistoryList.innerHTML = '';
+
+            if (savedHistory.length === 0) {
+                dailyHistoryList.innerHTML = `
+                    <div class="text-xs text-slate-400 text-center py-5 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        Wala pang naka-save na reports.<br>
+                        <span class="text-[11px] text-slate-500">I-save ang bawat araw para automatic ang MTD!</span>
+                    </div>`;
+                return;
+            }
+
+            const recent = savedHistory.slice(0, 10);
+            dailyHistoryList.innerHTML = recent.map(renderReportCardHTML).join('');
+            lucide.createIcons();
+        }
+
+        function getFilteredMtdReports() {
+            const branchFilter = mtdFilterBranch.value;
+            const monthFilter = mtdFilterMonth.value;
+
+            return savedHistory
+                .filter(item => {
+                    const matchBranch = branchFilter === 'ALL' || item.branch === branchFilter;
+                    const matchMonth = !monthFilter || (item.date && item.date.startsWith(monthFilter));
+                    return matchBranch && matchMonth;
+                })
+                .sort((a, b) => b.date.localeCompare(a.date));
+        }
+
+        function renderMtdDashboard() {
+            const filtered = getFilteredMtdReports();
+
+            const totalSales = filtered.reduce((sum, r) => sum + (parseFloat(r.sales) || 0), 0);
+            const totalQty = filtered.reduce((sum, r) => sum + (parseInt(r.qty, 10) || 0), 0);
+
+            mtdSummaryTotalSales.textContent = formatPeso(totalSales);
+            mtdSummaryTotalQty.textContent = `${totalQty.toLocaleString('en-US')} PCS`;
+            mtdSummaryDaysCount.textContent = `${filtered.length} Report${filtered.length === 1 ? '' : 's'}`;
+            mtdBreakdownBadge.textContent = `${filtered.length} entr${filtered.length === 1 ? 'y' : 'ies'}`;
+
+            if (filtered.length === 0) {
+                mtdBreakdownList.innerHTML = `
+                    <div class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        Walang naka-save na reports para sa napiling branch at buwan.
+                    </div>`;
+                return;
+            }
+
+            mtdBreakdownList.innerHTML = filtered.map(renderReportCardHTML).join('');
+            lucide.createIcons();
+        }
+
+        window.loadHistoryItem = function(id) {
+            const item = savedHistory.find(r => r.id === id);
+            if (!item) return;
+
+            reportDateInput.value = item.date;
+
+            const options = Array.from(branchSelect.options).map(o => o.value);
+            if (options.includes(item.branch)) {
+                branchSelect.value = item.branch;
+                customBranchContainer.classList.add('hidden');
+            } else {
+                branchSelect.value = 'CUSTOM';
+                customBranchContainer.classList.remove('hidden');
+                customBranchInput.value = item.branch;
+            }
+
+            reportQtyInput.value = item.qty;
+            reportSalesInput.value = item.sales;
+
+            isManualMtd = false;
+            switchView('daily');
+            showToast('Na-load na ang report para i-edit.');
+        };
+
+        window.copyHistoryItem = function(id) {
+            const item = savedHistory.find(r => r.id === id);
+            if (!item) return;
+
+            const itemMtd = item.mtd !== undefined
+                ? item.mtd
+                : calculateMTDFor(item.date, item.branch, item.sales);
+
+            const text = formatReportTextFromObj({ ...item, mtd: itemMtd });
+            copyTextToClipboard(text, 'Na-copy na ang report para sa Viber!');
+        };
+
+        window.deleteHistoryItem = function(id) {
+            const targetItem = savedHistory.find(r => r.id === id);
+            savedHistory = savedHistory.filter(r => r.id !== id);
+
+            if (targetItem && targetItem.date) {
+                refreshStoredMTDChain(targetItem.branch, targetItem.date.substring(0, 7));
+            }
+
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedHistory));
+            } catch (err) {
+                console.error(err);
+            }
+
+            if (!isManualMtd) {
+                recalculateMTD();
+                updateOutput();
+            }
+            renderDailyHistory();
+            renderMtdDashboard();
+            updateMenuSnapshot();
+            showToast('Nabura na sa history at na-update ang MTD.');
+        };
+
+        // ==========================================
+        // 5. CLIENT-SIDE PDF GENERATION (jsPDF)
+        // ==========================================
+        function drawAccupointPdfHeader(doc, reportTitle) {
+            // Royal Blue Top Header Bar
+            doc.setFillColor(0, 51, 160); // #0033A0
+            doc.rect(0, 0, 210, 32, 'F');
+
+            // Accupoint Brand Title
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text('Accupoint Systems Incorporated', 14, 15);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(219, 234, 254);
+            doc.text(reportTitle, 14, 23);
+
+            // Generated Timestamp on right
+            const nowStr = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            doc.setFontSize(9);
+            doc.text(`Generated: ${nowStr}`, 196, 23, { align: 'right' });
+        }
+
+        // Single Daily Sales Report PDF (Strictly NO personal name inside report)
+        function generateSingleReportPDF(reportObj) {
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast('Naglo-load pa ang PDF library, pakisubukan ulit.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+            drawAccupointPdfHeader(doc, 'NBS DAILY SALES & MTD REPORT');
+
+            const dateFormatted = formatViberDate(reportObj.date) || 'N/A';
+            const branchFormatted = reportObj.branch || 'N/A';
+            const qtyFormatted = `${parseInt(reportObj.qty, 10) || 0} PCS TOTAL`;
+            const salesFormatted = formatPhpPlain(reportObj.sales);
+            const mtdResolved = reportObj.mtd !== undefined
+                ? reportObj.mtd
+                : calculateMTDFor(reportObj.date, reportObj.branch, reportObj.sales);
+            const mtdFormatted = formatPhpPlain(mtdResolved);
+
+            // Report Details Table
+            doc.autoTable({
+                startY: 42,
+                head: [['REPORT FIELD', 'DETAILS']],
+                body: [
+                    ['REPORT TYPE', 'DAILY SALES REPORT'],
+                    ['DATE', dateFormatted],
+                    ['BRANCH', branchFormatted],
+                    ['TOTAL UNOFFICIAL QUANTITY SOLD', qtyFormatted],
+                    ['UNOFFICIAL DAILY SALES', salesFormatted],
+                    ['MTD SALES (MONTH-TO-DATE)', mtdFormatted]
+                ],
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [0, 51, 160],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 10
+                },
+                bodyStyles: {
+                    fontSize: 10.5,
+                    textColor: [30, 41, 59],
+                    cellPadding: 4.5
+                },
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 78, fillColor: [248, 250, 252] },
+                    1: { fontStyle: 'bold' }
+                }
+            });
+
+            // Viber Exact Text Box Section
+            const finalY = doc.lastAutoTable.finalY + 12;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(0, 51, 160);
+            doc.text('FORMATTED REPORT SUMMARY:', 14, finalY);
+
+            doc.setDrawColor(203, 213, 225);
+            doc.setFillColor(248, 250, 252);
+            doc.roundedRect(14, finalY + 4, 182, 54, 3, 3, 'FD');
+
+            doc.setFont('courier', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(15, 23, 42);
+
+            const pdfLines = [
+                'DAILY SALES REPORT',
+                '',
+                `DATE: ${dateFormatted}`,
+                '',
+                `BRANCH: ${branchFormatted}`,
+                `TOTAL UNOFFICIAL QUANTITY SOLD: ${qtyFormatted}`,
+                `UNOFFICIAL DAILY SALES: ${salesFormatted}`,
+                `MTD SALES: ${mtdFormatted}`
+            ];
+            doc.text(pdfLines, 19, finalY + 12);
+
+            // Clean Corporate Footer (No user name)
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(100, 116, 139);
+            doc.text('Accupoint Systems Incorporated - NBS Sales Reporting Utility', 105, 285, { align: 'center' });
+
+            const safeDate = (reportObj.date || 'report').replace(/[^0-9-]/g, '');
+            const safeBranch = branchFormatted.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 24);
+            doc.save(`NBS_Daily_Sales_${safeBranch}_${safeDate}.pdf`);
+            showToast('Na-download na ang Daily Sales PDF!');
+        }
+
+        // Full Monthly MTD Summary Report PDF (Strictly NO personal name inside report)
+        function generateMtdSummaryPDF() {
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast('Naglo-load pa ang PDF library, pakisubukan ulit.');
+                return;
+            }
+
+            const filtered = getFilteredMtdReports();
+            if (filtered.length === 0) {
+                showToast('Walang saved reports para gawing MTD PDF.');
+                return;
+            }
+
+            // Sort chronologically ascending for clean MTD ledger
+            const chronological = [...filtered].sort((a, b) => a.date.localeCompare(b.date));
+
+            const branchLabel = mtdFilterBranch.value === 'ALL' ? 'ALL BRANCHES' : mtdFilterBranch.value;
+            const monthLabel = formatMonthYearLabel(mtdFilterMonth.value) || 'ALL MONTHS';
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+            drawAccupointPdfHeader(doc, `MONTH-TO-DATE (MTD) SALES SUMMARY - ${monthLabel}`);
+
+            // Metadata Header Info
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(30, 41, 59);
+            doc.text(`BRANCH: ${branchLabel}`, 14, 41);
+            doc.text(`PERIOD: ${monthLabel}`, 14, 47);
+
+            let runningMtd = 0;
+            let totalQty = 0;
+            const rows = chronological.map(item => {
+                const salesVal = parseFloat(item.sales) || 0;
+                const qtyVal = parseInt(item.qty, 10) || 0;
+                runningMtd += salesVal;
+                totalQty += qtyVal;
+
+                return [
+                    formatViberDate(item.date),
+                    item.branch,
+                    `${qtyVal} PCS`,
+                    formatPhpPlain(salesVal),
+                    formatPhpPlain(runningMtd)
+                ];
+            });
+
+            // Append Grand Total Row
+            rows.push([
+                'TOTAL',
+                `${chronological.length} Day(s) Reported`,
+                `${totalQty.toLocaleString('en-US')} PCS`,
+                formatPhpPlain(runningMtd),
+                formatPhpPlain(runningMtd)
+            ]);
+
+            doc.autoTable({
+                startY: 53,
+                head: [['DATE', 'BRANCH', 'QTY SOLD', 'DAILY SALES', 'RUNNING MTD']],
+                body: rows,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [0, 51, 160],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 8.5
+                },
+                bodyStyles: {
+                    fontSize: 8.5,
+                    textColor: [30, 41, 59],
+                    cellPadding: 3
+                },
+                columnStyles: {
+                    0: { cellWidth: 34 },
+                    1: { cellWidth: 56 },
+                    2: { halign: 'right', cellWidth: 24 },
+                    3: { halign: 'right', cellWidth: 34, fontStyle: 'bold' },
+                    4: { halign: 'right', cellWidth: 34, fontStyle: 'bold', textColor: [0, 51, 160] }
+                },
+                didParseCell: function(data) {
+                    if (data.row.index === rows.length - 1) {
+                        data.cell.styles.fillColor = [239, 246, 255];
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [0, 51, 160];
+                    }
+                }
+            });
+
+            // Clean Corporate Footer (No user name)
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(100, 116, 139);
+            doc.text('Accupoint Systems Incorporated - NBS Month-to-Date Sales Summary', 105, 285, { align: 'center' });
+
+            const safeMonth = (mtdFilterMonth.value || 'MTD').replace(/[^0-9-]/g, '');
+            const safeBranch = branchLabel.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+            doc.save(`NBS_MTD_Summary_${safeBranch}_${safeMonth}.pdf`);
+            showToast('Na-download na ang MTD Summary PDF!');
+        }
+
+        // ==========================================
+        // 6. CLIPBOARD & TOAST UTILITIES
+        // ==========================================
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.textContent = message;
+            
+            toast.classList.remove('-translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-24', 'opacity-0');
+            }, 2600);
+        }
+
+        async function copyTextToClipboard(textToCopy, successMessage) {
+            let copiedSuccess = false;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    copiedSuccess = true;
+                } catch (err) {
+                    copiedSuccess = false;
+                }
+            }
+
+            if (!copiedSuccess) {
+                try {
+                    const tempArea = document.createElement('textarea');
+                    tempArea.value = textToCopy;
+                    tempArea.style.position = 'fixed';
+                    tempArea.style.left = '-9999px';
+                    document.body.appendChild(tempArea);
+                    tempArea.focus();
+                    tempArea.select();
+                    tempArea.setSelectionRange(0, 99999);
+                    copiedSuccess = document.execCommand('copy');
+                    document.body.removeChild(tempArea);
+                } catch (err) {
+                    copiedSuccess = false;
+                }
+            }
+
+            if (copiedSuccess) {
+                showToast(successMessage);
+            } else {
+                showToast('Na-highlight na! I-tap at i-copy lang sa menu.');
+            }
+        }
     </script>
 </body>
 </html>
