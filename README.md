@@ -1,4 +1,4 @@
-# NBS Sales Reporter
+# BRANCH Sales Reporter
 
 A mobile-responsive web application designed for Accupoint Systems Incorporated merchandisers to streamline daily sales reporting, MTD (Month-to-Date) calculations, and Viber-formatted report generation.
 
